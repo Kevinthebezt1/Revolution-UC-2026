@@ -1,0 +1,1181 @@
+﻿<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Pickup Locker</title>
+  <style>
+    :root {
+      --bg: #f2efe8;
+      --card: #fffdfa;
+      --ink: #1f2a24;
+      --muted: #5d6a62;
+      --accent: #0b6b4a;
+      --accent-2: #ed7d31;
+      --line: #d9d3c7;
+      --danger: #9d1a1a;
+      --ok: #0b6b4a;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: radial-gradient(circle at top left, #fff6df 0%, var(--bg) 45%, #e8e4db 100%);
+      color: var(--ink);
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .wrap {
+      max-width: 1120px;
+      margin: 0 auto;
+    }
+
+    .hero {
+      margin-bottom: 20px;
+      padding: 24px;
+      border: 1px solid var(--line);
+      background: linear-gradient(135deg, #fffdfa 0%, #f7f2e9 100%);
+      border-radius: 16px;
+    }
+
+    .hero h1 {
+      margin: 0 0 6px;
+      font-size: 1.9rem;
+    }
+
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .mode-switch {
+      margin-top: 12px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .otp-tools {
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .otp-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px dashed #bea67a;
+      border-radius: 10px;
+      background: #fff7ea;
+      padding: 8px 12px;
+      min-width: 140px;
+      min-height: 40px;
+    }
+
+    .otp-timer {
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .otp-label {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .otp-value {
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      color: #4f3217;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 1rem;
+    }
+
+    .mode-btn {
+      margin-top: 0;
+      background: #557b68;
+    }
+
+    .mode-btn.active {
+      background: #0b6b4a;
+      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--card);
+      padding: 18px;
+      box-shadow: 0 6px 18px rgba(31, 42, 36, 0.06);
+      min-width: 0;
+    }
+
+    .card h2 {
+      margin-top: 0;
+      font-size: 1.2rem;
+    }
+
+    label {
+      font-weight: 600;
+      display: block;
+      margin: 12px 0 6px;
+      font-size: 0.95rem;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #cfc8bb;
+      background: #fff;
+      color: var(--ink);
+      font-size: 0.95rem;
+    }
+
+    button {
+      margin-top: 14px;
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-weight: 700;
+      cursor: pointer;
+      color: #fff;
+      background: var(--accent);
+      transition: transform 0.12s ease, opacity 0.12s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .alt {
+      background: var(--accent-2);
+    }
+
+    .danger-btn {
+      background: #a83131;
+    }
+
+    .mini-btn {
+      margin-top: 0;
+      padding: 6px 10px;
+      font-size: 0.8rem;
+      border-radius: 8px;
+    }
+
+    .code-box {
+      margin-top: 14px;
+      border: 1px dashed #bea67a;
+      border-radius: 12px;
+      padding: 12px;
+      background: #fff7ea;
+    }
+
+    .code {
+      font-size: 1.8rem;
+      letter-spacing: 2px;
+      font-weight: 800;
+      color: #4f3217;
+    }
+
+    .status {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 0.92rem;
+      display: block;
+      min-height: 42px;
+      visibility: hidden;
+    }
+
+    .status.show {
+      visibility: visible;
+    }
+
+    .status.ok {
+      background: #e4f5ed;
+      color: var(--ok);
+      border: 1px solid #b5e1c9;
+    }
+
+    .status.err {
+      background: #fde9e9;
+      color: var(--danger);
+      border: 1px solid #f4bcbc;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 0.86rem;
+      margin-top: 8px;
+      line-height: 1.4;
+    }
+
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .orders-card {
+      margin-top: 16px;
+      overflow: hidden;
+    }
+
+    .wrap.public-mode {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .wrap.public-mode .hero {
+      grid-column: 1 / -1;
+      margin-bottom: 0;
+    }
+
+    .wrap.public-mode .admin-only-card {
+      display: none;
+    }
+
+    .wrap.public-mode .grid {
+      grid-column: 1 / 2;
+      display: block;
+    }
+
+    .wrap.public-mode .orders-card {
+      grid-column: 2 / 3;
+      margin-top: 0;
+      height: 100%;
+    }
+
+    .wrap.public-mode th:nth-child(1),
+    .wrap.public-mode td:nth-child(1),
+    .wrap.public-mode th:nth-child(2),
+    .wrap.public-mode td:nth-child(2),
+    .wrap.public-mode th:nth-child(7),
+    .wrap.public-mode td:nth-child(7),
+    .wrap.public-mode th:nth-child(8),
+    .wrap.public-mode td:nth-child(8),
+    .wrap.public-mode th:nth-child(9),
+    .wrap.public-mode td:nth-child(9),
+    .wrap.public-mode th:nth-child(10),
+    .wrap.public-mode td:nth-child(10) {
+      display: none;
+    }
+
+    .orders-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      min-height: 36px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 0.92rem;
+      min-width: 760px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .wrap.public-mode table {
+      min-width: 420px;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      padding: 8px 6px;
+      vertical-align: top;
+    }
+
+    th {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    #projectInfo {
+      min-height: 20px;
+    }
+
+    .tag {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 2px 10px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      border: 1px solid #c7d8cf;
+      background: #eff7f2;
+      color: #24523c;
+    }
+
+    .tag.delivered {
+      border-color: #e0c6a8;
+      background: #fff2e5;
+      color: #874d17;
+    }
+
+    @media (max-width: 980px) {
+      .wrap.public-mode {
+        grid-template-columns: 1fr;
+      }
+
+      .wrap.public-mode .grid,
+      .wrap.public-mode .orders-card {
+        grid-column: 1 / -1;
+      }
+    }
+
+    @media (max-width: 760px) {
+      body {
+        padding: 14px;
+      }
+
+      .hero {
+        padding: 16px;
+      }
+
+      th:nth-child(7),
+      td:nth-child(7),
+      th:nth-child(8),
+      td:nth-child(8),
+      th:nth-child(9),
+      td:nth-child(9) {
+        display: none;
+      }
+
+      .mode-switch {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+
+      .mode-btn {
+        width: 100%;
+      }
+
+      .card {
+        padding: 14px;
+      }
+
+      button {
+        width: 100%;
+      }
+
+      .mini-btn {
+        width: auto;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="appWrap" class="wrap public-mode">
+    <section class="hero">
+      <h1>Smart Pickup Locker</h1>
+      <p>Create orders, verify pickup IDs, open lock, and notify users through one shared <span class="mono">ntfy</span>
+        topic.</p>
+      <div class="mode-switch">
+        <button id="publicModeBtn" class="mode-btn active" type="button">Public View</button>
+        <button id="adminModeBtn" class="mode-btn" type="button">Admin Mode</button>
+      </div>
+      <div class="otp-tools">
+        <button id="generateOtpBtn" type="button" style="margin-top: 0!important;">Generate OTP (6 digits)</button>
+        <div class="otp-chip">
+          <span class="otp-label">Current OTP:</span>
+          <span id="otpValue" class="otp-value">------</span>
+        </div>
+        <span id="otpTimer" class="otp-timer">Expires in: --s</span>
+      </div>
+    </section>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Create Order</h2>
+        <form id="orderForm">
+          <label for="customerName">Customer Name</label>
+          <input id="customerName" required placeholder="Alex Nguyen" />
+
+          <label for="itemName">Item Name</label>
+          <input id="itemName" required placeholder="Bluetooth Earbuds" />
+
+          <button id="createBtn" type="submit">Create Order + Generate ID</button>
+        </form>
+
+        <div class="code-box" id="generatedPanel" style="display:none;">
+          <div>Generated Order ID:</div>
+          <div class="code mono" id="generatedCode">------</div>
+          <div class="hint" id="generatedMeta"></div>
+        </div>
+
+        <div id="createStatus" class="status"></div>
+      </section>
+
+      <section class="card admin-only-card">
+        <h2>Delivery Verification</h2>
+        <label for="verifyCode">Pickup ID</label>
+        <input id="verifyCode" class="mono" placeholder="6-digit code" maxlength="6" />
+
+        <button id="verifyBtn" class="alt" type="button">Verify + Open Lock + Notify</button>
+        <div class="hint">If code is valid: order is marked delivered, optional lock endpoint is called, and
+          notification is pushed.</div>
+
+        <div id="verifyStatus" class="status"></div>
+      </section>
+
+      <section class="card admin-only-card">
+        <h2>System Settings</h2>
+
+        <label for="globalNtfyTopic">Global ntfy Topic</label>
+        <input id="globalNtfyTopic" value="revolution-locker-alerts" placeholder="revolution-locker-alerts" />
+        <button id="testNtfyBtn" type="button">Send Test Notification</button>
+
+        <label for="opsNtfyTopic">Staff/Receiver ntfy Topic</label>
+        <input id="opsNtfyTopic" value="revolution-locker-staff" placeholder="revolution-locker-staff" />
+        <!-- <div class="hint">When a new order is created, this topic receives: customer name + delivery code.</div> -->
+
+        <label for="lockEndpoint">Lock Open Endpoint (Optional)</label>
+        <input id="lockEndpoint" placeholder="https://your-lock-system.example/open" />
+
+        <div id="projectInfo" class="hint">Connecting to Firebase...</div>
+      </section>
+    </div>
+
+    <section class="card orders-card">
+      <div class="orders-head">
+        <h2 style="margin:0;">All Orders in Database</h2>
+        <span id="ordersCount" class="hint">0 orders</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Doc ID</th>
+              <th>Customer</th>
+              <th>Item</th>
+              <th>Detected Count</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th>Delivered</th>
+              <th>Notify</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="ordersBody">
+            <tr>
+              <td colspan="10" class="hint">Loading orders...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <!-- <div class="hint">Device flow: write a document to <span class="mono">delivery_requests</span> with fields <span
+          class="mono">{ orderId: "123456", status: "pending", source: "esp32-1" }</span>. This site will process and
+        write back confirmation fields.</div> -->
+    </section>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      query,
+      where,
+      getDocs,
+      runTransaction,
+      updateDoc,
+      deleteDoc,
+      doc,
+      serverTimestamp,
+      limit,
+      onSnapshot,
+      orderBy
+    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD6IslSN65YlExFBWKijtwIwVAk8epyEdo",
+      authDomain: "revolution-hackathon-spring-26.firebaseapp.com",
+      databaseURL: "https://revolution-hackathon-spring-26-default-rtdb.firebaseio.com",
+      projectId: "revolution-hackathon-spring-26",
+      storageBucket: "revolution-hackathon-spring-26.firebasestorage.app",
+      messagingSenderId: "378300349584",
+      appId: "1:378300349584:web:3e3a7c84c37d2f7842ac15",
+      measurementId: "G-EFTQS8KXPH"
+    };
+
+    let db;
+
+    const projectInfo = document.getElementById("projectInfo");
+    const orderForm = document.getElementById("orderForm");
+    const createBtn = document.getElementById("createBtn");
+    const createStatus = document.getElementById("createStatus");
+    const generatedPanel = document.getElementById("generatedPanel");
+    const generatedCode = document.getElementById("generatedCode");
+    const generatedMeta = document.getElementById("generatedMeta");
+
+    const verifyCode = document.getElementById("verifyCode");
+    const verifyBtn = document.getElementById("verifyBtn");
+    const verifyStatus = document.getElementById("verifyStatus");
+    const publicModeBtn = document.getElementById("publicModeBtn");
+    const adminModeBtn = document.getElementById("adminModeBtn");
+    const generateOtpBtn = document.getElementById("generateOtpBtn");
+    const otpValue = document.getElementById("otpValue");
+    const otpTimer = document.getElementById("otpTimer");
+    const adminOnlyCards = document.querySelectorAll(".admin-only-card");
+    const appWrap = document.getElementById("appWrap");
+
+    const globalNtfyTopic = document.getElementById("globalNtfyTopic");
+    const opsNtfyTopic = document.getElementById("opsNtfyTopic");
+    const testNtfyBtn = document.getElementById("testNtfyBtn");
+    const lockEndpoint = document.getElementById("lockEndpoint");
+
+    const ordersBody = document.getElementById("ordersBody");
+    const ordersCount = document.getElementById("ordersCount");
+    let isCreating = false;
+    const processingRequestIds = new Set();
+    const orderStatusByDoc = new Map();
+    let hasSentFiveBoxAlert = false;
+    let isSendingFiveBoxAlert = false;
+    let otpCountdownInterval = null;
+    let otpExpiresAtMs = 0;
+    let currentOtpDocRef = null;
+    let viewMode = "public";
+
+    function showStatus(el, message, ok = true) {
+      el.textContent = message;
+      el.className = "status show " + (ok ? "ok" : "err");
+    }
+
+    function formatTimestamp(ts) {
+      if (!ts || !ts.toDate) return "-";
+      return ts.toDate().toLocaleString();
+    }
+
+    function setViewMode(mode) {
+      viewMode = mode === "admin" ? "admin" : "public";
+      adminOnlyCards.forEach((card) => {
+        card.style.display = viewMode === "admin" ? "" : "none";
+      });
+      appWrap.classList.toggle("public-mode", viewMode === "public");
+      publicModeBtn.classList.toggle("active", viewMode === "public");
+      adminModeBtn.classList.toggle("active", viewMode === "admin");
+    }
+
+    function generateOrderId() {
+      // Fast 6-digit code without pre-querying Firestore.
+      return Math.floor(100000 + Math.random() * 900000).toString();
+    }
+
+    function generateOtpCode() {
+      return Math.floor(100000 + Math.random() * 900000).toString();
+    }
+
+    async function deleteOldOtps(exceptDocId = "") {
+      const q = query(collection(db, "otp"));
+      const snap = await getDocs(q);
+      for (const otpDoc of snap.docs) {
+        if (otpDoc.id === exceptDocId) continue;
+        await deleteDoc(otpDoc.ref);
+      }
+    }
+
+    async function createOtpRecord(otpCode) {
+      const docRef = await addDoc(collection(db, "otp"), {
+        otp: otpCode,
+        status: "valid",
+        invalidReason: ""
+      });
+      currentOtpDocRef = docRef;
+      await deleteOldOtps(docRef.id);
+    }
+
+    async function markCurrentOtpInvalid(reason = "expired") {
+      if (!currentOtpDocRef) return;
+      const docRef = currentOtpDocRef;
+      currentOtpDocRef = null;
+      try {
+        await updateDoc(docRef, {
+          status: "invalid",
+          invalidReason: reason
+        });
+      } catch (error) {
+        console.error("failed to mark otp invalid", error);
+      }
+    }
+
+    function buildOrderQrUrl(orderId) {
+      const payload = String(orderId || "").trim();
+      return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(payload)}`;
+    }
+
+    function normalizeOrderId(rawValue) {
+      const raw = String(rawValue || "").trim();
+      if (/^\d{6}$/.test(raw)) return raw;
+
+      const orderMatch = raw.match(/ORDER_ID[:\s-]*(\d{6})/i);
+      if (orderMatch) return orderMatch[1];
+
+      const anyDigits = raw.match(/(\d{6})/);
+      if (anyDigits) return anyDigits[1];
+
+      return "";
+    }
+
+    function stopOtpCountdown() {
+      if (otpCountdownInterval) {
+        clearInterval(otpCountdownInterval);
+        otpCountdownInterval = null;
+      }
+    }
+
+    function updateOtpCountdown() {
+      const leftMs = otpExpiresAtMs - Date.now();
+      const leftSec = Math.max(0, Math.ceil(leftMs / 1000));
+      otpTimer.textContent = `Expires in: ${leftSec}s`;
+      if (leftSec <= 0) {
+        stopOtpCountdown();
+        otpValue.textContent = "EXPIRED";
+        markCurrentOtpInvalid("expired");
+      }
+    }
+
+    function startOtpCountdown(seconds = 60) {
+      stopOtpCountdown();
+      otpExpiresAtMs = Date.now() + seconds * 1000;
+      updateOtpCountdown();
+      otpCountdownInterval = setInterval(updateOtpCountdown, 1000);
+    }
+
+    async function withTimeout(promise, ms, label) {
+      let timeoutId;
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error(`${label} timed out after ${ms / 1000}s`)), ms);
+      });
+      try {
+        return await Promise.race([promise, timeoutPromise]);
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    }
+
+    async function sendNtfyToTopic(topic, title, message, tags = "package", options = {}) {
+      const cleanedTopic = String(topic || "").trim();
+      if (!cleanedTopic) throw new Error("ntfy topic is empty.");
+
+      const url = new URL(`https://ntfy.sh/${encodeURIComponent(cleanedTopic)}`);
+      url.searchParams.set("title", title);
+      url.searchParams.set("tags", tags);
+      url.searchParams.set("priority", "default");
+      if (options.clickUrl) {
+        url.searchParams.set("click", options.clickUrl);
+      }
+      if (options.attachUrl) {
+        url.searchParams.set("attach", options.attachUrl);
+      }
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain; charset=utf-8" },
+        body: message
+      });
+
+      if (!res.ok) throw new Error(`ntfy failed (${res.status})`);
+      return cleanedTopic;
+    }
+
+    async function sendNtfy(title, message, tags = "package") {
+      const topic = globalNtfyTopic.value.trim();
+      if (!topic) throw new Error("Global ntfy topic is empty.");
+      return sendNtfyToTopic(topic, title, message, tags);
+    }
+
+    async function sendCreateAlertToStaff(customerName, itemName, orderId) {
+      const topic = opsNtfyTopic.value.trim();
+      if (!topic) return { skipped: true };
+
+      const qrUrl = buildOrderQrUrl(orderId);
+      const msg = `New order: ${customerName} | Item: ${itemName} | Pickup ID: ${orderId}`;
+      await sendNtfyToTopic(topic, "New Locker Order", msg, "package,inbox_tray", {
+        clickUrl: qrUrl,
+        attachUrl: qrUrl
+      });
+      return { skipped: false, topic };
+    }
+
+    async function callLockSystem(orderId) {
+      const endpoint = lockEndpoint.value.trim();
+      if (!endpoint) return "skipped";
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId, action: "open_lock" })
+      });
+
+      if (!res.ok) throw new Error(`Lock endpoint failed (${res.status})`);
+      return "opened";
+    }
+
+    async function processDeliveryCode(rawCode) {
+      const code = normalizeOrderId(rawCode);
+      if (!code) {
+        return { ok: false, reason: "invalid_code_format", message: "Invalid code format." };
+      }
+
+      const q = query(collection(db, "orders"), where("orderId", "==", code), limit(1));
+      const snap = await getDocs(q);
+
+      if (snap.empty) {
+        return { ok: false, reason: "not_found", message: "Code not found in database." };
+      }
+
+      const orderDoc = snap.docs[0];
+      const order = orderDoc.data();
+
+      if (order.status === "delivered") {
+        return { ok: false, reason: "already_delivered", message: "Order already delivered for this code.", order };
+      }
+
+      await updateDoc(orderDoc.ref, {
+        status: "delivered",
+        deliveredAt: serverTimestamp()
+      });
+
+      let lockResult = "skipped";
+
+      try {
+        lockResult = await callLockSystem(code);
+      } catch (lockErr) {
+        return {
+          ok: false,
+          reason: "lock_failed",
+          message: `Code valid and order marked delivered, but lock call failed: ${lockErr.message}`,
+          order
+        };
+      }
+
+      return {
+        ok: true,
+        reason: "delivered",
+        lockResult,
+        order
+      };
+    }
+
+    async function sendDeliveryNotification(orderDocSnap, force = false) {
+      let order = orderDocSnap.data();
+      if (!order || order.status !== "delivered") return;
+
+      if (!force) {
+        const claimed = await runTransaction(db, async (tx) => {
+          const freshSnap = await tx.get(orderDocSnap.ref);
+          if (!freshSnap.exists()) return false;
+          const freshOrder = freshSnap.data() || {};
+          if (freshOrder.status !== "delivered") return false;
+          if (freshOrder.notifiedAt) return false;
+          if (freshOrder.notifyState === "sending" || freshOrder.notifyState === "sent") return false;
+          tx.update(orderDocSnap.ref, {
+            notifyState: "sending",
+            notifyError: ""
+          });
+          return true;
+        });
+
+        if (!claimed) return;
+        const latestSnap = await getDoc(orderDocSnap.ref);
+        order = latestSnap.data() || order;
+      } else {
+        await updateDoc(orderDocSnap.ref, {
+          notifyState: "sending",
+          notifyError: ""
+        });
+      }
+
+      try {
+        await sendNtfy(
+          "Package Delivered",
+          `Hi ${order.customerName}, your item "${order.itemName}" has arrived. Pickup ID: ${order.orderId}.`,
+          "package,white_check_mark"
+        );
+        await updateDoc(orderDocSnap.ref, {
+          notifiedAt: serverTimestamp(),
+          notifyState: "sent"
+        });
+      } catch (error) {
+        console.error("delivery notification failed", error);
+        await updateDoc(orderDocSnap.ref, {
+          notifyState: "failed",
+          notifyError: String(error.message || error)
+        });
+      }
+    }
+
+    async function notifyDeliveredOrder(orderDocSnap) {
+      await sendDeliveryNotification(orderDocSnap, false);
+    }
+
+    function buildNotifyText(order) {
+      if (order.notifyState === "sent") return "sent";
+      if (order.notifyState === "sending") return "sending";
+      if (order.notifyState === "failed") return `failed: ${order.notifyError || "unknown error"}`;
+      if (order.status === "delivered") return "pending";
+      return "-";
+    }
+
+    async function maybeNotifyFivePackages(snapshot) {
+      const waitingCount = snapshot.docs.filter((docSnap) => {
+        const order = docSnap.data() || {};
+        return order.status === "waiting";
+      }).length;
+
+      if (waitingCount < 5) {
+        hasSentFiveBoxAlert = false;
+        return;
+      }
+
+      if (hasSentFiveBoxAlert || isSendingFiveBoxAlert) return;
+      isSendingFiveBoxAlert = true;
+      try {
+        await sendNtfy(
+          "Locker Reminder",
+          "You have 5 package in the box! Don't forget to grab them!",
+          "warning,package"
+        );
+        hasSentFiveBoxAlert = true;
+      } catch (error) {
+        console.error("five-package alert failed", error);
+      } finally {
+        isSendingFiveBoxAlert = false;
+      }
+    }
+
+    function renderOrders(snapshot) {
+      ordersCount.textContent = `${snapshot.size} order${snapshot.size === 1 ? "" : "s"}`;
+
+      if (snapshot.empty) {
+        ordersBody.innerHTML = '<tr><td colspan="10" class="hint">No orders yet.</td></tr>';
+        return;
+      }
+
+      const rows = snapshot.docs.map((docSnap) => {
+        const order = docSnap.data();
+        const statusClass = order.status === "delivered" ? "tag delivered" : "tag";
+        const notifyText = buildNotifyText(order);
+        return `
+          <tr>
+            <td class="mono">${order.orderId || "-"}</td>
+            <td class="mono">${docSnap.id}</td>
+            <td>${order.customerName || "-"}</td>
+            <td>${order.itemName || "-"}</td>
+            <td>${Number.isFinite(Number(order.detectedCount)) ? Number(order.detectedCount) : 0}</td>
+            <td><span class="${statusClass}">${order.status || "waiting"}</span></td>
+            <td>${formatTimestamp(order.createdAt)}</td>
+            <td>${formatTimestamp(order.deliveredAt)}</td>
+            <td class="hint">${notifyText}</td>
+            <td>
+              <button type="button" class="mini-btn danger-btn delete-order-btn" data-doc-id="${docSnap.id}" data-order-id="${order.orderId || ""}">
+                Remove
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+
+      ordersBody.innerHTML = rows;
+    }
+
+    function startOrdersListener() {
+      const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
+      onSnapshot(q, async (snapshot) => {
+        for (const change of snapshot.docChanges()) {
+          const docId = change.doc.id;
+          const status = (change.doc.data() || {}).status || "waiting";
+          const previousStatus = orderStatusByDoc.get(docId);
+
+          if (change.type === "removed") {
+            orderStatusByDoc.delete(docId);
+            continue;
+          }
+
+          orderStatusByDoc.set(docId, status);
+
+          if (change.type === "modified" && previousStatus !== "delivered" && status === "delivered") {
+            await notifyDeliveredOrder(change.doc);
+          }
+        }
+
+        renderOrders(snapshot);
+        await maybeNotifyFivePackages(snapshot);
+      }, (error) => {
+        console.error(error);
+        ordersBody.innerHTML = `<tr><td colspan="10" class="hint">Failed to load orders: ${error.message}</td></tr>`;
+      });
+    }
+
+    function startDeviceRequestsListener() {
+      const requestsQuery = query(
+        collection(db, "delivery_requests"),
+        where("status", "==", "pending"),
+        orderBy("createdAt", "asc")
+      );
+
+      onSnapshot(requestsQuery, async (snapshot) => {
+        for (const reqDoc of snapshot.docs) {
+          if (processingRequestIds.has(reqDoc.id)) continue;
+          processingRequestIds.add(reqDoc.id);
+
+          try {
+            const data = reqDoc.data();
+            const code = normalizeOrderId(String(data.orderId || ""));
+            if (!code) {
+              await updateDoc(reqDoc.ref, {
+                status: "rejected",
+                result: "invalid_code_format",
+                message: "orderId must contain a valid 6-digit code.",
+                completedAt: serverTimestamp()
+              });
+              continue;
+            }
+
+            await updateDoc(reqDoc.ref, {
+              status: "processing",
+              processingAt: serverTimestamp()
+            });
+
+            const result = await processDeliveryCode(code);
+            await updateDoc(reqDoc.ref, {
+              status: result.ok ? "confirmed" : "rejected",
+              result: result.reason,
+              message: result.message || "",
+              lockResult: result.lockResult || "skipped",
+              notifyResult: result.ok ? "pending_from_status_change" : "",
+              notifyError: "",
+              completedAt: serverTimestamp()
+            });
+          } catch (error) {
+            console.error("delivery_requests processing error", error);
+            try {
+              await updateDoc(reqDoc.ref, {
+                status: "error",
+                result: "internal_error",
+                message: error.message || "Unknown error",
+                completedAt: serverTimestamp()
+              });
+            } catch (innerErr) {
+              console.error("failed to write request error state", innerErr);
+            }
+          } finally {
+            processingRequestIds.delete(reqDoc.id);
+          }
+        }
+      }, (error) => {
+        console.error("delivery_requests listener error", error);
+      });
+    }
+
+    setViewMode("public");
+
+    try {
+      const app = initializeApp(firebaseConfig);
+      db = getFirestore(app);
+      projectInfo.textContent = "Connected. Project ID: " + firebaseConfig.projectId;
+      startOrdersListener();
+      startDeviceRequestsListener();
+    } catch (error) {
+      projectInfo.textContent = "Firebase init failed. Check config.";
+      console.error(error);
+    }
+
+    orderForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!db) {
+        showStatus(createStatus, "Firebase not ready. Check config.", false);
+        return;
+      }
+      if (isCreating) return;
+
+      isCreating = true;
+      createBtn.disabled = true;
+      createBtn.textContent = "Creating...";
+
+      const customerName = document.getElementById("customerName").value.trim();
+      const itemName = document.getElementById("itemName").value.trim();
+
+      try {
+        const orderId = generateOrderId();
+        const docRef = await withTimeout(addDoc(collection(db, "orders"), {
+          orderId,
+          customerName,
+          itemName,
+          detectedCount: 0,
+          status: "waiting",
+          createdAt: serverTimestamp(),
+          deliveredAt: null
+        }), 12000, "Create order");
+
+        generatedPanel.style.display = "block";
+        generatedCode.textContent = orderId;
+        generatedMeta.textContent = `Saved order document: ${docRef.id}`;
+
+        let createAlertNote = "";
+        try {
+          const alertResult = await sendCreateAlertToStaff(customerName, itemName, orderId);
+          if (!alertResult.skipped) {
+            createAlertNote = ` Staff alert sent to "${alertResult.topic}".`;
+          }
+        } catch (alertErr) {
+          createAlertNote = ` Staff alert failed: ${alertErr.message}`;
+        }
+
+        showStatus(createStatus, `Order created. ID ${orderId} is ready for delivery system.${createAlertNote}`);
+        document.getElementById("customerName").value = "";
+        document.getElementById("itemName").value = "";
+      } catch (error) {
+        console.error(error);
+        showStatus(createStatus, "Failed to create order. " + error.message, false);
+      } finally {
+        isCreating = false;
+        createBtn.disabled = false;
+        createBtn.textContent = "Create Order + Generate ID";
+      }
+    });
+
+    verifyBtn.addEventListener("click", async () => {
+      const rawCode = verifyCode.value.trim();
+      const code = normalizeOrderId(rawCode);
+      if (!code) {
+        showStatus(verifyStatus, "Enter a valid 6-digit code or QR payload.", false);
+        return;
+      }
+
+      if (!db) {
+        showStatus(verifyStatus, "Firebase not ready. Check config.", false);
+        return;
+      }
+
+      verifyBtn.disabled = true;
+      verifyBtn.textContent = "Verifying...";
+
+      try {
+        const result = await processDeliveryCode(rawCode);
+        if (!result.ok) {
+          showStatus(verifyStatus, result.message || "Verification failed.", false);
+          return;
+        }
+
+        const topic = globalNtfyTopic.value.trim();
+        showStatus(verifyStatus, `Success. Code valid, lock ${result.lockResult}, notification is being sent to topic "${topic}".`);
+      } catch (error) {
+        console.error(error);
+        showStatus(verifyStatus, "Verification failed. " + error.message, false);
+      } finally {
+        verifyBtn.disabled = false;
+        verifyBtn.textContent = "Verify + Open Lock + Notify";
+      }
+    });
+
+    ordersBody.addEventListener("click", async (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      const docId = target.dataset.docId;
+      if (!docId) return;
+
+      if (target.classList.contains("delete-order-btn")) {
+        const orderId = target.dataset.orderId || "";
+
+        target.setAttribute("disabled", "true");
+        target.textContent = "Removing...";
+        try {
+          await deleteDoc(doc(db, "orders", docId));
+          showStatus(createStatus, `Removed order ${orderId || docId}.`, true);
+        } catch (error) {
+          console.error(error);
+          showStatus(createStatus, `Failed to remove order: ${error.message}`, false);
+          target.removeAttribute("disabled");
+          target.textContent = "Remove";
+        }
+      }
+    });
+
+    publicModeBtn.addEventListener("click", () => {
+      setViewMode("public");
+    });
+
+    adminModeBtn.addEventListener("click", () => {
+      setViewMode("admin");
+    });
+
+    generateOtpBtn.addEventListener("click", async () => {
+      if (!db) {
+        showStatus(createStatus, "Firebase not ready. Cannot generate OTP.", false);
+        return;
+      }
+
+      generateOtpBtn.disabled = true;
+      const originalText = generateOtpBtn.textContent;
+      generateOtpBtn.textContent = "Generating...";
+      try {
+        const code = generateOtpCode();
+        await createOtpRecord(code);
+        otpValue.textContent = code;
+        startOtpCountdown(60);
+        showStatus(createStatus, "OTP generated and saved in otp collection (status: valid).", true);
+      } catch (error) {
+        console.error(error);
+        showStatus(createStatus, "Failed to generate OTP: " + error.message, false);
+      } finally {
+        generateOtpBtn.disabled = false;
+        generateOtpBtn.textContent = originalText || "Generate OTP (6 digits)";
+      }
+    });
+
+    testNtfyBtn.addEventListener("click", async () => {
+      testNtfyBtn.disabled = true;
+      testNtfyBtn.textContent = "Sending...";
+      try {
+        const usedTopic = await sendNtfy(
+          "Locker Test",
+          "Test notification from Smart Pickup Locker.",
+          "bell"
+        );
+        showStatus(verifyStatus, `Test notification sent to topic "${usedTopic}".`, true);
+      } catch (error) {
+        showStatus(verifyStatus, `Test notification failed: ${error.message}`, false);
+      } finally {
+        testNtfyBtn.disabled = false;
+        testNtfyBtn.textContent = "Send Test Notification";
+      }
+    });
+  </script>
+</body>
+
+</html>
