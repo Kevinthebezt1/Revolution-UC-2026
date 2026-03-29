@@ -483,6 +483,10 @@
         <input id="opsNtfyTopic" value="revolution-locker-staff" placeholder="revolution-locker-staff" />
         <!-- <div class="hint">When a new order is created, this topic receives: customer name + delivery code.</div> -->
 
+        <label for="publicAppUrl">Public App URL (for notification click)</label>
+        <input id="publicAppUrl" placeholder="https://revolution-hackathon-spring-26.web.app/" />
+        <div class="hint">Use your deployed HTTPS URL, not localhost.</div>
+
         <label for="lockEndpoint">Lock Open Endpoint (Optional)</label>
         <input id="lockEndpoint" placeholder="https://your-lock-system.example/open" />
 
@@ -580,6 +584,7 @@
 
     const globalNtfyTopic = document.getElementById("globalNtfyTopic");
     const opsNtfyTopic = document.getElementById("opsNtfyTopic");
+    const publicAppUrl = document.getElementById("publicAppUrl");
     const testNtfyBtn = document.getElementById("testNtfyBtn");
     const lockEndpoint = document.getElementById("lockEndpoint");
 
@@ -588,8 +593,6 @@
     let isCreating = false;
     const processingRequestIds = new Set();
     const orderStatusByDoc = new Map();
-    let hasSentFiveBoxAlert = false;
-    let isSendingFiveBoxAlert = false;
     let otpCountdownInterval = null;
     let otpExpiresAtMs = 0;
     let currentOtpDocRef = null;
@@ -662,8 +665,17 @@
       return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(payload)}`;
     }
 
+    function getPublicAppBaseUrl() {
+      const configured = String(publicAppUrl.value || "").trim();
+      if (configured) {
+        if (/^https?:\/\//i.test(configured)) return configured;
+        return `https://${configured}`;
+      }
+      return `${window.location.origin}${window.location.pathname}`;
+    }
+
     function buildQrPageUrl(orderId) {
-      const url = new URL(window.location.href);
+      const url = new URL(getPublicAppBaseUrl());
       url.searchParams.set("orderId", String(orderId || "").trim());
       return url.toString();
     }
@@ -765,9 +777,9 @@
 
       const qrUrl = buildOrderQrUrl(orderId);
       const qrPageUrl = buildQrPageUrl(orderId);
-      const msg = `New order: ${customerName} | Item: ${itemName} | Pickup ID: ${orderId}`;
+      const msg = `New order: ${customerName}\nItem: ${itemName}\nPickup ID: ${orderId}\nQR: ${qrUrl}\nPage: ${qrPageUrl}`;
       await sendNtfyToTopic(topic, "New Locker Order", msg, "package,inbox_tray", {
-        clickUrl: qrPageUrl,
+        clickUrl: qrUrl,
         attachUrl: qrUrl
       });
       return { skipped: false, topic };
@@ -893,33 +905,6 @@
       return "-";
     }
 
-    async function maybeNotifyFivePackages(snapshot) {
-      const waitingCount = snapshot.docs.filter((docSnap) => {
-        const order = docSnap.data() || {};
-        return order.status === "waiting";
-      }).length;
-
-      if (waitingCount < 5) {
-        hasSentFiveBoxAlert = false;
-        return;
-      }
-
-      if (hasSentFiveBoxAlert || isSendingFiveBoxAlert) return;
-      isSendingFiveBoxAlert = true;
-      try {
-        await sendNtfy(
-          "Locker Reminder",
-          "You have 5 package in the box! Don't forget to grab them!",
-          "warning,package"
-        );
-        hasSentFiveBoxAlert = true;
-      } catch (error) {
-        console.error("five-package alert failed", error);
-      } finally {
-        isSendingFiveBoxAlert = false;
-      }
-    }
-
     function renderOrders(snapshot) {
       ordersCount.textContent = `${snapshot.size} order${snapshot.size === 1 ? "" : "s"}`;
 
@@ -976,7 +961,6 @@
         }
 
         renderOrders(snapshot);
-        await maybeNotifyFivePackages(snapshot);
       }, (error) => {
         console.error(error);
         ordersBody.innerHTML = `<tr><td colspan="10" class="hint">Failed to load orders: ${error.message}</td></tr>`;
