@@ -55,10 +55,9 @@
     }
 
     .mode-switch {
-      margin-top: 12px;
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
+      display: none;
+      margin: 0;
+      gap: 0;
     }
 
     .otp-tools {
@@ -432,6 +431,7 @@
         </div>
         <span id="otpTimer" class="otp-timer">Expires in: --s</span>
       </div>
+      <div id="otpStatus" class="hint"></div>
       <div id="deeplinkQrPanel" class="deeplink-qr">
         <div>QR for Order ID: <span id="deeplinkOrderId" class="mono"></span></div>
         <img id="deeplinkQrImage" alt="Order QR from notification link" />
@@ -450,14 +450,6 @@
 
           <button id="createBtn" type="submit">Create Order + Generate ID</button>
         </form>
-
-        <div class="code-box" id="generatedPanel" style="display:none;">
-          <div>Generated Order ID:</div>
-          <div class="code mono" id="generatedCode">------</div>
-          <div class="hint" id="generatedMeta"></div>
-        </div>
-
-        <div id="createStatus" class="status"></div>
       </section>
 
       <section class="card admin-only-card">
@@ -536,10 +528,12 @@
       addDoc,
       query,
       where,
+      getDoc,
       getDocs,
       runTransaction,
       updateDoc,
       deleteDoc,
+      setDoc,
       doc,
       serverTimestamp,
       limit,
@@ -563,10 +557,6 @@
     const projectInfo = document.getElementById("projectInfo");
     const orderForm = document.getElementById("orderForm");
     const createBtn = document.getElementById("createBtn");
-    const createStatus = document.getElementById("createStatus");
-    const generatedPanel = document.getElementById("generatedPanel");
-    const generatedCode = document.getElementById("generatedCode");
-    const generatedMeta = document.getElementById("generatedMeta");
 
     const verifyCode = document.getElementById("verifyCode");
     const verifyBtn = document.getElementById("verifyBtn");
@@ -576,6 +566,7 @@
     const generateOtpBtn = document.getElementById("generateOtpBtn");
     const otpValue = document.getElementById("otpValue");
     const otpTimer = document.getElementById("otpTimer");
+    const otpStatus = document.getElementById("otpStatus");
     const deeplinkQrPanel = document.getElementById("deeplinkQrPanel");
     const deeplinkOrderId = document.getElementById("deeplinkOrderId");
     const deeplinkQrImage = document.getElementById("deeplinkQrImage");
@@ -601,6 +592,11 @@
     function showStatus(el, message, ok = true) {
       el.textContent = message;
       el.className = "status show " + (ok ? "ok" : "err");
+    }
+
+    function showOtpStatus(message, ok = true) {
+      otpStatus.textContent = message;
+      otpStatus.style.color = ok ? "var(--ok)" : "var(--danger)";
     }
 
     function formatTimestamp(ts) {
@@ -637,13 +633,27 @@
     }
 
     async function createOtpRecord(otpCode) {
-      const docRef = await addDoc(collection(db, "otp"), {
+      const docRef = doc(collection(db, "otp"));
+      await setDoc(docRef, {
         otp: otpCode,
         status: "valid",
         invalidReason: ""
       });
+
+      try {
+        await setDoc(doc(db, "current_order", "active"), {
+          orderId: docRef.id
+        }, { merge: true });
+      } catch (error) {
+        throw new Error("Created otp but failed to update current_order/active.orderId. Check Firestore rules for current_order.");
+      }
+
+      try {
+        await deleteOldOtps(docRef.id);
+      } catch (error) {
+        throw new Error("Created otp but failed to delete old otp documents. Check Firestore delete permissions for otp collection.");
+      }
       currentOtpDocRef = docRef;
-      await deleteOldOtps(docRef.id);
     }
 
     async function markCurrentOtpInvalid(reason = "expired") {
@@ -1045,7 +1055,7 @@
     orderForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       if (!db) {
-        showStatus(createStatus, "Firebase not ready. Check config.", false);
+        showStatus(verifyStatus, "Firebase not ready. Check config.", false);
         return;
       }
       if (isCreating) return;
@@ -1069,26 +1079,18 @@
           deliveredAt: null
         }), 12000, "Create order");
 
-        generatedPanel.style.display = "block";
-        generatedCode.textContent = orderId;
-        generatedMeta.textContent = `Saved order document: ${docRef.id}`;
-
-        let createAlertNote = "";
         try {
-          const alertResult = await sendCreateAlertToStaff(customerName, itemName, orderId);
-          if (!alertResult.skipped) {
-            createAlertNote = ` Staff alert sent to "${alertResult.topic}".`;
-          }
+          await sendCreateAlertToStaff(customerName, itemName, orderId);
         } catch (alertErr) {
-          createAlertNote = ` Staff alert failed: ${alertErr.message}`;
+          console.error("staff alert failed", alertErr);
         }
 
-        showStatus(createStatus, `Order created. ID ${orderId} is ready for delivery system.${createAlertNote}`);
+        showStatus(verifyStatus, `Order created. ID ${orderId} is ready for delivery system.`);
         document.getElementById("customerName").value = "";
         document.getElementById("itemName").value = "";
       } catch (error) {
         console.error(error);
-        showStatus(createStatus, "Failed to create order. " + error.message, false);
+        showStatus(verifyStatus, "Failed to create order. " + error.message, false);
       } finally {
         isCreating = false;
         createBtn.disabled = false;
@@ -1143,10 +1145,10 @@
         target.textContent = "Removing...";
         try {
           await deleteDoc(doc(db, "orders", docId));
-          showStatus(createStatus, `Removed order ${orderId || docId}.`, true);
+          showStatus(verifyStatus, `Removed order ${orderId || docId}.`, true);
         } catch (error) {
           console.error(error);
-          showStatus(createStatus, `Failed to remove order: ${error.message}`, false);
+          showStatus(verifyStatus, `Failed to remove order: ${error.message}`, false);
           target.removeAttribute("disabled");
           target.textContent = "Remove";
         }
@@ -1163,7 +1165,7 @@
 
     generateOtpBtn.addEventListener("click", async () => {
       if (!db) {
-        showStatus(createStatus, "Firebase not ready. Cannot generate OTP.", false);
+        showOtpStatus("Firebase not ready. Cannot generate OTP.", false);
         return;
       }
 
@@ -1175,10 +1177,10 @@
         await createOtpRecord(code);
         otpValue.textContent = code;
         startOtpCountdown(60);
-        showStatus(createStatus, "OTP generated and saved in otp collection (status: valid).", true);
+        showOtpStatus("", true);
       } catch (error) {
         console.error(error);
-        showStatus(createStatus, "Failed to generate OTP: " + error.message, false);
+        showOtpStatus("Failed to generate OTP: " + error.message, false);
       } finally {
         generateOtpBtn.disabled = false;
         generateOtpBtn.textContent = originalText || "Generate OTP (6 digits)";
