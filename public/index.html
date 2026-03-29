@@ -100,6 +100,24 @@
       font-size: 1rem;
     }
 
+    .deeplink-qr {
+      margin-top: 12px;
+      padding: 12px;
+      border: 1px dashed #bea67a;
+      border-radius: 10px;
+      background: #fff7ea;
+      display: none;
+    }
+
+    .deeplink-qr img {
+      width: 180px;
+      height: 180px;
+      border-radius: 8px;
+      border: 1px solid #d8ccb3;
+      background: #fff;
+      margin-top: 8px;
+    }
+
     .mode-btn {
       margin-top: 0;
       background: #557b68;
@@ -414,6 +432,10 @@
         </div>
         <span id="otpTimer" class="otp-timer">Expires in: --s</span>
       </div>
+      <div id="deeplinkQrPanel" class="deeplink-qr">
+        <div>QR for Order ID: <span id="deeplinkOrderId" class="mono"></span></div>
+        <img id="deeplinkQrImage" alt="Order QR from notification link" />
+      </div>
     </section>
 
     <div class="grid">
@@ -550,6 +572,9 @@
     const generateOtpBtn = document.getElementById("generateOtpBtn");
     const otpValue = document.getElementById("otpValue");
     const otpTimer = document.getElementById("otpTimer");
+    const deeplinkQrPanel = document.getElementById("deeplinkQrPanel");
+    const deeplinkOrderId = document.getElementById("deeplinkOrderId");
+    const deeplinkQrImage = document.getElementById("deeplinkQrImage");
     const adminOnlyCards = document.querySelectorAll(".admin-only-card");
     const appWrap = document.getElementById("appWrap");
 
@@ -637,6 +662,12 @@
       return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(payload)}`;
     }
 
+    function buildQrPageUrl(orderId) {
+      const url = new URL(window.location.href);
+      url.searchParams.set("orderId", String(orderId || "").trim());
+      return url.toString();
+    }
+
     function normalizeOrderId(rawValue) {
       const raw = String(rawValue || "").trim();
       if (/^\d{6}$/.test(raw)) return raw;
@@ -648,6 +679,16 @@
       if (anyDigits) return anyDigits[1];
 
       return "";
+    }
+
+    function showQrFromUrlIfPresent() {
+      const params = new URLSearchParams(window.location.search);
+      const orderId = normalizeOrderId(params.get("orderId") || "");
+      if (!orderId) return;
+
+      deeplinkOrderId.textContent = orderId;
+      deeplinkQrImage.src = buildOrderQrUrl(orderId);
+      deeplinkQrPanel.style.display = "block";
     }
 
     function stopOtpCountdown() {
@@ -723,9 +764,10 @@
       if (!topic) return { skipped: true };
 
       const qrUrl = buildOrderQrUrl(orderId);
+      const qrPageUrl = buildQrPageUrl(orderId);
       const msg = `New order: ${customerName} | Item: ${itemName} | Pickup ID: ${orderId}`;
       await sendNtfyToTopic(topic, "New Locker Order", msg, "package,inbox_tray", {
-        clickUrl: qrUrl,
+        clickUrl: qrPageUrl,
         attachUrl: qrUrl
       });
       return { skipped: false, topic };
@@ -1003,6 +1045,7 @@
     }
 
     setViewMode("public");
+    showQrFromUrlIfPresent();
 
     try {
       const app = initializeApp(firebaseConfig);
